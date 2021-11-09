@@ -10,8 +10,10 @@
   },
   "types": "./dist/OasisApi.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "tsc"
   },
+  "files": ["dist"],
   "license": "Apache-2.0",
   "devDependencies": {
     "typescript": "^4.2.4"

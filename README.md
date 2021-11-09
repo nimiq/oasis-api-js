@@ -2,6 +2,16 @@
 
 A simple ES5 library to interact with the OASIS API.
 
+## Package
+
+This package can be installed from NPM as
+
+```
+@nimiq/oasis-api
+```
+
+https://www.npmjs.com/package/@nimiq/oasis-api
+
 ## API
 
 ```ts
