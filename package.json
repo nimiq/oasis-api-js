@@ -1,0 +1,19 @@
+{
+  "name": "@nimiq/oasis-api",
+  "version": "1.0.0",
+  "description": "Typed Javascript library to access OASIS APIs from the browser.",
+  "module": "./dist/OasisApi.js",
+  "exports": {
+    ".": {
+      "import": "./dist/OasisApi.js"
+    }
+  },
+  "types": "./dist/OasisApi.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "^4.2.4"
+  }
+}
