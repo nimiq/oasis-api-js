@@ -84,7 +84,7 @@ export type SettlementInfo<SStatus = SettlementStatus> = {
     detail: SStatus extends SettlementStatus.DENIED | SettlementStatus.FAILED ? {
         reason: SStatus extends SettlementStatus.DENIED ? DeniedReason : string,
     } : SStatus extends SettlementStatus.ACCEPTED ? {
-        eta: string,
+        eta?: string,
     } : never,
 }
 
