@@ -191,6 +191,7 @@ export async function createHtlc(
     contract: Pick<RawHtlc, 'asset' | 'amount' | 'beneficiary' | 'hash' | 'preimage' | 'expires'> & {
         includeFee: boolean,
     },
+    authorizationToken?: string,
 ): Promise<Htlc<HtlcStatus.PENDING>> {
     if (contract.beneficiary.kty === KeyType.OCTET_KEY_PAIR || contract.beneficiary.kty === KeyType.ELLIPTIC_CURVE) {
         const { x } = contract.beneficiary;
@@ -230,7 +231,14 @@ export async function createHtlc(
         contract.expires = new Date(expires).toISOString();
     }
 
-    const htlc = await api<RawHtlc<HtlcStatus.PENDING>>('/htlc', 'POST', contract);
+    const htlc = await api<RawHtlc<HtlcStatus.PENDING>>(
+        '/htlc',
+        'POST',
+        contract,
+        authorizationToken
+            ? { 'Authorization': `Bearer ${authorizationToken}` }
+            : undefined,
+    );
     return convertHtlc(htlc);
 }
 
@@ -243,6 +251,7 @@ export async function settleHtlc(
     id: string,
     secret: string,
     settlementJWS: string,
+    authorizationToken?: string,
 ): Promise<Htlc<HtlcStatus.SETTLED>> {
     if (secret.length === 64) {
         secret = hexToBase64(secret);
@@ -257,10 +266,17 @@ export async function settleHtlc(
         throw new Error('Invalid settlement instruction JWS');
     }
 
-    const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(`/htlc/${id}/settle`, 'POST', {
-        preimage: secret,
-        settlement: settlementJWS,
-    });
+    const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(
+        `/htlc/${id}/settle`,
+        'POST',
+        {
+            preimage: secret,
+            settlement: settlementJWS,
+        },
+        authorizationToken
+            ? { 'Authorization': `Bearer ${authorizationToken}` }
+            : undefined,
+    );
     return convertHtlc(htlc);
 }
 
