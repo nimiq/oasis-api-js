@@ -1,6 +1,6 @@
 {
   "name": "@nimiq/oasis-api",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Typed Javascript library to access OASIS APIs from the browser.",
   "repository": "https://github.com/nimiq/oasis-api-js",
   "author": "Nimiq Network Ltd.",
