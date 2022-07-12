@@ -4,6 +4,7 @@ type OasisError = {
     type: string,
     title: string,
     status: number,
+    detail?: string,
 }
 
 enum OasisAsset {
@@ -162,24 +163,26 @@ export function init(url: string) {
     API_URL = url;
 }
 
-async function api(
+async function api<T>(
     path: string,
     method: 'POST' | 'GET' | 'DELETE',
     body?: Record<string, unknown>,
-): Promise<RawHtlc> {
+    headers?: Record<string, string>,
+): Promise<T> {
     if (!API_URL) throw new Error('API URL not set, call init() first');
 
     const response = await fetch(`${API_URL}${path}`, {
         method,
         headers: {
             'Content-Type': 'application/json',
+            ...headers,
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
     if (!response.ok) {
         const error = await response.json() as OasisError;
-        throw new Error(error.title);
+        throw new Error(`${error.title}${error.detail ? `: ${error.detail}` : ''}`);
     }
     return response.json();
 }
@@ -227,12 +230,12 @@ export async function createHtlc(
         contract.expires = new Date(expires).toISOString();
     }
 
-    const htlc = await api('/htlc', 'POST', contract) as RawHtlc<HtlcStatus.PENDING>;
+    const htlc = await api<RawHtlc<HtlcStatus.PENDING>>('/htlc', 'POST', contract);
     return convertHtlc(htlc);
 }
 
 export async function getHtlc(id: string): Promise<Htlc> {
-    const htlc = await api(`/htlc/${id}`, 'GET');
+    const htlc = await api<RawHtlc<HtlcStatus>>(`/htlc/${id}`, 'GET');
     return convertHtlc(htlc);
 }
 
@@ -254,10 +257,10 @@ export async function settleHtlc(
         throw new Error('Invalid settlement instruction JWS');
     }
 
-    const htlc = await api(`/htlc/${id}/settle`, 'POST', {
+    const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(`/htlc/${id}/settle`, 'POST', {
         preimage: secret,
         settlement: settlementJWS,
-    }) as RawHtlc<HtlcStatus.SETTLED>;
+    });
     return convertHtlc(htlc);
 }
 
@@ -273,6 +276,13 @@ export async function sandboxMockClearHtlc(id: string): Promise<boolean> {
         }
         return true;
     });
+}
+
+export async function exchangeAuthorizationToken(token: string): Promise<string> {
+    const response = await api<{ token: string }>('/auth', 'POST', undefined, {
+        'Authorization': `Bearer ${token}`,
+    });
+    return response.token;
 }
 
 function convertHtlc<TStatus extends HtlcStatus>(htlc: RawHtlc<TStatus>): Htlc<TStatus> {
