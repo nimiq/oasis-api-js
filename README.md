@@ -19,20 +19,23 @@ function init(url: string)
 ```
 
 ```ts
-async function createHtlc(contract: {
-    asset: Asset,
-    amount: number,
-    beneficiary: OctetKeyPair | EllipticCurveKey,
-    hash: {
-        algorithm: 'sha256' | 'blake2b',
-        value: string,
+async function createHtlc(
+    contract: {
+        asset: Asset,
+        amount: number,
+        beneficiary: OctetKeyPair | EllipticCurveKey,
+        hash: {
+            algorithm: 'sha256' | 'blake2b',
+            value: string,
+        },
+        preimage: {
+            size: 32,
+        },
+        expires: number,
+        includeFee: boolean,
     },
-    preimage: {
-        size: 32,
-    },
-    expires: number,
-    includeFee: boolean,
-}): Promise<Htlc<HtlcStatus.PENDING>>
+    authorizationToken?: string,
+): Promise<Htlc<HtlcStatus.PENDING>>
 ```
 
 ```ts
@@ -44,11 +47,16 @@ async function settleHtlc(
     id: string,
     secret: string,
     settlementJWS: string,
+    authorizationToken?: string,
 ): Promise<Htlc<HtlcStatus.SETTLED>>
 ```
 
 ```ts
 async function sandboxMockClearHtlc(id: string): Promise<boolean>
+```
+
+```ts
+async function exchangeAuthorizationToken(token: string): Promise<string>
 ```
 
 ## Helper methods
