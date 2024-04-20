@@ -1,0 +1,32 @@
+meta {
+  name: Create HTLC
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{API_URL}}/htlc
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "asset": "CRC",
+    "amount": 1000,
+    "beneficiary": {
+      "kty": "OKP",
+      "crv": "ed25519",
+      "x": "zbocfQDkyrIE-Ne-WUllqyj88vdL_6eXSDnZAdM6j38"
+    },
+    "hash": {
+      "algorithm": "sha256",
+      "value": "gylh35EKNwQ3Eh0GUbuVA70__V4lmzEwjAliNcAI29s"
+    },
+    "preimage": {
+      "size": 32
+    },
+    "expires": "2024-04-20T18:00:00.000Z",
+    "includeFee": false
+  }
+}

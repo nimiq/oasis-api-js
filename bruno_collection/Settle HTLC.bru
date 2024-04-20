@@ -1,0 +1,42 @@
+meta {
+  name: Settle HTLC
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{API_URL}}/htlc/H4ZYN2JYLLCLUZB5DCTTUKOPK/settle
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "preimage": "G4nZgBREenQOVBh1VNvry-M8aT1IPq1G0LFCzhpcmv8",
+    "settlement": "eyJhbGciOiJFZERTQSJ9.eyJ0eXBlIjoic2lucGVtb3ZpbCIsImNvbnRyYWN0SWQiOiJINFpZTjJKWUxMQ0xVWkI1RENUVFVLT1BLIiwicGhvbmVOdW1iZXIiOiI4ODg4ODg4OCJ9.LL8E1KC0pj2zdwoY13EeETWJ9QYjri4OgkxTM7eHMpW9lNYW0tetMOUCNbff7pTeQ4z4dX4IUQH9SurwJViNAQ"
+  }
+}
+
+docs {
+  ## JWS
+  
+  ### Header
+  
+  The header of the JWS is `{"alg":"EdDSA"}` = `eyJhbGciOiJFZERTQSJ9`.
+  
+  ### Body
+  
+  ```
+  {
+    type: "sinpemovil",
+    contractId: "<contract.id>",
+    phoneNumber: "<phone number>",
+  }
+  ```
+  
+  For mock settlement, use the sandbox-whitelisted phone number `88888888`.
+  
+  ### Signature
+  
+  The signature is made over the ASCII bytes of `{header}.{body}` and appended to the JWS: `{header}.{body}.{signature}`.
+}
