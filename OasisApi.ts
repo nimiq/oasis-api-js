@@ -9,10 +9,12 @@ type OasisError = {
 
 enum OasisAsset {
     EUR = 'eur',
+    CRC = 'crc',
 }
 
 export enum Asset {
     EUR = 'EUR',
+    CRC = 'CRC',
 }
 
 export enum HtlcStatus {
@@ -81,7 +83,7 @@ export type SettlementInfo<SStatus = SettlementStatus> = {
     status: SStatus,
     type?: TransactionType,
     options: SStatus extends SettlementStatus.WAITING | SettlementStatus.DENIED | SettlementStatus.FAILED
-        ? SettlementDescriptor[] : never,
+    ? SettlementDescriptor[] : never,
     detail: SStatus extends SettlementStatus.DENIED | SettlementStatus.FAILED ? {
         reason: SStatus extends SettlementStatus.DENIED ? DeniedReason : string,
     } : SStatus extends SettlementStatus.ACCEPTED ? {
@@ -251,7 +253,10 @@ export async function settleHtlc(
     id: string,
     secret: string,
     settlementJWS: string,
-    authorizationToken?: string,
+    tokens?: {
+        authorization: string,
+        smsApi: string
+    }
 ): Promise<Htlc<HtlcStatus.SETTLED>> {
     if (secret.length === 64) {
         secret = hexToBase64(secret);
@@ -266,6 +271,12 @@ export async function settleHtlc(
         throw new Error('Invalid settlement instruction JWS');
     }
 
+    const headers: Record<string, string> = {}
+    if (tokens?.authorization)
+        headers['Authorization'] = `Bearer ${tokens.authorization}`;
+    if (tokens?.smsApi)
+        headers['X-SMS-API-Token'] = tokens.smsApi;
+
     const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(
         `/htlc/${id}/settle`,
         'POST',
@@ -273,9 +284,7 @@ export async function settleHtlc(
             preimage: secret,
             settlement: settlementJWS,
         },
-        authorizationToken
-            ? { 'Authorization': `Bearer ${authorizationToken}` }
-            : undefined,
+        headers,
     );
     return convertHtlc(htlc);
 }
@@ -360,11 +369,13 @@ function convertHtlc<TStatus extends HtlcStatus>(htlc: RawHtlc<TStatus>): Htlc<T
 function coinsToUnits(asset: OasisAsset, value: string | number, roundUp = false): number {
     let decimals: number;
     switch (asset) {
-        case OasisAsset.EUR: decimals = 2; break;
+        case OasisAsset.EUR:
+        case OasisAsset.CRC:
+            decimals = 2; break;
         default: throw new Error(`Invalid asset ${asset}`);
     }
     const parts = value.toString().split('.');
-    parts[1] = (parts[1] || '').substr(0, decimals + 1);
+    parts[1] = (parts[1] || '').substring(0, decimals + 1);
     while (parts[1].length < decimals + 1) {
         parts[1] += '0';
     }
