@@ -41,6 +41,10 @@ export enum DeniedReason {
     LIMIT_EXCEEDED = 'limit-exceeded',
 }
 
+export type CreationTokens = Partial<{
+    authorization: string,
+}>;
+
 export enum TransactionType {
     SEPA = 'sepa',
     MOCK = 'mock', // Only available in Sandbox environment
@@ -110,6 +114,11 @@ export type MockSettlementInstruction = {
 };
 
 export type SettlementInstruction = SepaSettlementInstruction | MockSettlementInstruction;
+
+export type SettlementTokens = Partial<{
+    authorization: string,
+    smsApi: string,
+}>;
 
 export enum KeyType {
     OCTET_KEY_PAIR = 'OKP',
@@ -193,7 +202,7 @@ export async function createHtlc(
     contract: Pick<RawHtlc, 'asset' | 'amount' | 'beneficiary' | 'hash' | 'preimage' | 'expires'> & {
         includeFee: boolean,
     },
-    authorizationToken?: string,
+    tokens?: CreationTokens,
 ): Promise<Htlc<HtlcStatus.PENDING>> {
     if (contract.beneficiary.kty === KeyType.OCTET_KEY_PAIR || contract.beneficiary.kty === KeyType.ELLIPTIC_CURVE) {
         const { x } = contract.beneficiary;
@@ -233,14 +242,17 @@ export async function createHtlc(
         contract.expires = new Date(expires).toISOString();
     }
 
+    const headers: Record<string, string> = {};
+    if (tokens?.authorization) {
+        headers['Authorization'] = `Bearer ${tokens.authorization}`;
+    }
+
     const htlc = await api<RawHtlc<HtlcStatus.PENDING>>(
         API_URL,
         '/htlc',
         'POST',
         contract,
-        authorizationToken
-            ? { 'Authorization': `Bearer ${authorizationToken}` }
-            : undefined,
+        headers,
     );
     return convertHtlc(htlc);
 }
@@ -255,10 +267,7 @@ export async function settleHtlc(
     id: string,
     secret: string,
     settlementJWS: string,
-    tokens?: {
-        authorization: string,
-        smsApi: string
-    }
+    tokens?: SettlementTokens,
 ): Promise<Htlc<HtlcStatus.SETTLED>> {
     if (secret.length === 64) {
         secret = hexToBase64(secret);
