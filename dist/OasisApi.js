@@ -38,6 +38,7 @@ export var DeniedReason;
 export var TransactionType;
 (function (TransactionType) {
     TransactionType["SEPA"] = "sepa";
+    TransactionType["SINPEMOVIL"] = "sinpemovil";
     TransactionType["MOCK"] = "mock";
 })(TransactionType || (TransactionType = {}));
 export var KeyType;
