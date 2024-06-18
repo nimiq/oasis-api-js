@@ -47,6 +47,7 @@ export type CreationTokens = Partial<{
 
 export enum TransactionType {
     SEPA = 'sepa',
+    SINPEMOVIL = 'sinpemovil',
     MOCK = 'mock', // Only available in Sandbox environment
 }
 
@@ -63,12 +64,19 @@ export type SepaClearingInstruction = {
     purpose?: string,
 };
 
+export type SinpeMovilClearingInstruction = {
+    type: TransactionType.SINPEMOVIL,
+    amount: number,
+    phoneNumber: string,
+    purpose?: string,
+};
+
 export type MockClearingInstruction = {
     type: TransactionType.MOCK,
     description: string,
 };
 
-export type ClearingInstruction = SepaClearingInstruction | MockClearingInstruction;
+export type ClearingInstruction = SepaClearingInstruction | SinpeMovilClearingInstruction | MockClearingInstruction;
 
 export type ClearingInfo<CStatus = ClearingStatus> = {
     status: CStatus,
@@ -108,12 +116,21 @@ export type SepaSettlementInstruction = {
     recipient: SepaRecipient,
 };
 
+export type SinpeMovilSettlementInstruction = {
+    type: TransactionType.SINPEMOVIL,
+    contractId: string,
+    phoneNumber: string,
+};
+
 export type MockSettlementInstruction = {
     type: TransactionType.MOCK,
     contractId: string,
 };
 
-export type SettlementInstruction = SepaSettlementInstruction | MockSettlementInstruction;
+export type SettlementInstruction =
+    | SepaSettlementInstruction
+    | SinpeMovilSettlementInstruction
+    | MockSettlementInstruction;
 
 export type SettlementTokens = Partial<{
     authorization: string,
