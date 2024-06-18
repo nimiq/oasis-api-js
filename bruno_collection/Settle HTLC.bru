@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: {{API_URL}}/htlc/H4ZYN2JYLLCLUZB5DCTTUKOPK/settle
+  url: {{API_URL}}/v1/htlc/{{htlc_id}}/settle
   body: json
   auth: none
+}
+
+headers {
+  X-SMS-API-Token: {{sms_api_token}}
 }
 
 body:json {
