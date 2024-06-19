@@ -1,0 +1,28 @@
+meta {
+  name: Verify SMS
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{API_URL}}/sms/verify
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "phone_number": "{{phone_number}}",
+    "otp": "923217",
+    "verification_id": {
+      "timestamp": {{timestamp}},
+      "hmac": "{{hmac}}"
+    }
+  }
+}
+
+script:post-response {
+  let data = res.getBody();
+  bru.setEnvVar("sms_api_token",data.token);
+  
+}
