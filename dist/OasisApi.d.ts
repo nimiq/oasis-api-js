@@ -95,7 +95,7 @@ export type MockSettlementInstruction = {
     type: TransactionType.MOCK;
     contractId: string;
 };
-export type SettlementInstruction = SepaSettlementInstruction | SinpeMovilClearingInstruction | MockSettlementInstruction;
+export type SettlementInstruction = SepaSettlementInstruction | SinpeMovilSettlementInstruction | MockSettlementInstruction;
 export type SettlementTokens = Partial<{
     authorization: string;
     smsApi: string;
