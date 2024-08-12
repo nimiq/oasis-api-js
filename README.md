@@ -15,11 +15,8 @@ https://www.npmjs.com/package/@nimiq/oasis-api
 ## API
 
 ```ts
-function init(url: string)
-```
-
-```ts
 async function createHtlc(
+    API_URL: string,
     contract: {
         asset: Asset,
         amount: number,
@@ -39,11 +36,12 @@ async function createHtlc(
 ```
 
 ```ts
-async function getHtlc(id: string): Promise<Htlc>
+async function getHtlc(API_URL: string, id: string): Promise<Htlc>
 ```
 
 ```ts
 async function settleHtlc(
+    API_URL: string,
     id: string,
     secret: string,
     settlementJWS: string,
@@ -52,11 +50,11 @@ async function settleHtlc(
 ```
 
 ```ts
-async function sandboxMockClearHtlc(id: string): Promise<boolean>
+async function sandboxMockClearHtlc(API_URL: string, id: string): Promise<boolean>
 ```
 
 ```ts
-async function exchangeAuthorizationToken(token: string): Promise<string>
+async function exchangeAuthorizationToken(API_URL: string, token: string): Promise<string>
 ```
 
 ## Helper methods

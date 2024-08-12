@@ -1,5 +1,3 @@
-let API_URL: string | undefined = 'https://api-sandbox.nimiqoasis.com/v1';
-
 type OasisError = {
     type: string,
     title: string,
@@ -163,12 +161,8 @@ export type RawHtlc<TStatus = HtlcStatus> = Omit<Htlc<TStatus>, 'asset' | 'expir
     expires: string,
 };
 
-export function init(url: string) {
-    if (!url) throw new Error('url must be provided');
-    API_URL = url;
-}
-
 async function api<T>(
+    API_URL: string,
     path: string,
     method: 'POST' | 'GET' | 'DELETE',
     body?: Record<string, unknown>,
@@ -193,6 +187,7 @@ async function api<T>(
 }
 
 export async function createHtlc(
+    API_URL: string,
     contract: Pick<RawHtlc, 'asset' | 'amount' | 'beneficiary' | 'hash' | 'preimage' | 'expires'> & {
         includeFee: boolean,
     },
@@ -237,6 +232,7 @@ export async function createHtlc(
     }
 
     const htlc = await api<RawHtlc<HtlcStatus.PENDING>>(
+        API_URL,
         '/htlc',
         'POST',
         contract,
@@ -247,12 +243,13 @@ export async function createHtlc(
     return convertHtlc(htlc);
 }
 
-export async function getHtlc(id: string): Promise<Htlc> {
-    const htlc = await api<RawHtlc<HtlcStatus>>(`/htlc/${id}`, 'GET');
+export async function getHtlc(API_URL: string, id: string): Promise<Htlc> {
+    const htlc = await api<RawHtlc<HtlcStatus>>(API_URL, `/htlc/${id}`, 'GET');
     return convertHtlc(htlc);
 }
 
 export async function settleHtlc(
+    API_URL: string,
     id: string,
     secret: string,
     settlementJWS: string,
@@ -272,6 +269,7 @@ export async function settleHtlc(
     }
 
     const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(
+        API_URL,
         `/htlc/${id}/settle`,
         'POST',
         {
@@ -285,7 +283,7 @@ export async function settleHtlc(
     return convertHtlc(htlc);
 }
 
-export async function sandboxMockClearHtlc(id: string): Promise<boolean> {
+export async function sandboxMockClearHtlc(API_URL: string, id: string): Promise<boolean> {
     if (!API_URL) throw new Error('API URL not set, call init() first');
 
     return fetch(`${API_URL}/mock/clear/${id}`, {
@@ -299,8 +297,8 @@ export async function sandboxMockClearHtlc(id: string): Promise<boolean> {
     });
 }
 
-export async function exchangeAuthorizationToken(token: string): Promise<string> {
-    const response = await api<{ token: string }>('/auth', 'POST', undefined, {
+export async function exchangeAuthorizationToken(API_URL: string, token: string): Promise<string> {
+    const response = await api<{ token: string }>(API_URL, '/auth', 'POST', undefined, {
         'Authorization': `Bearer ${token}`,
     });
     return response.token;
