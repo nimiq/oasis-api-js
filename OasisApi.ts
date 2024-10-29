@@ -5,7 +5,7 @@ type OasisError = {
     title: string,
     status: number,
     detail?: string,
-}
+};
 
 enum OasisAsset {
     EUR = 'eur',
@@ -50,19 +50,19 @@ export type SepaRecipient = {
     iban: string,
     name: string,
     bic: string,
-}
+};
 
 export type SepaClearingInstruction = {
     type: TransactionType.SEPA,
     amount: number,
     recipient: SepaRecipient,
     purpose?: string,
-}
+};
 
 export type MockClearingInstruction = {
     type: TransactionType.MOCK,
     description: string,
-}
+};
 
 export type ClearingInstruction = SepaClearingInstruction | MockClearingInstruction;
 
@@ -71,38 +71,43 @@ export type ClearingInfo<CStatus = ClearingStatus> = {
     type?: TransactionType,
     options: ClearingInstruction[],
     detail: CStatus extends ClearingStatus.PARTIAL ? {
-        amount: number,
-    } : CStatus extends ClearingStatus.DENIED ? {
-        reason: DeniedReason,
-    } : never,
-}
+            amount: number,
+        }
+        : CStatus extends ClearingStatus.DENIED ? {
+                reason: DeniedReason,
+            }
+        : never,
+};
 
 export type SettlementInfo<SStatus = SettlementStatus> = {
     status: SStatus,
     type?: TransactionType,
     options: SStatus extends SettlementStatus.WAITING | SettlementStatus.DENIED | SettlementStatus.FAILED
-        ? SettlementDescriptor[] : never,
+        ? SettlementDescriptor[]
+        : never,
     detail: SStatus extends SettlementStatus.DENIED | SettlementStatus.FAILED ? {
-        reason: SStatus extends SettlementStatus.DENIED ? DeniedReason : string,
-    } : SStatus extends SettlementStatus.ACCEPTED ? {
-        eta?: string,
-    } : never,
-}
+            reason: SStatus extends SettlementStatus.DENIED ? DeniedReason : string,
+        }
+        : SStatus extends SettlementStatus.ACCEPTED ? {
+                eta?: string,
+            }
+        : never,
+};
 
 export type SettlementDescriptor = {
     type: TransactionType,
-}
+};
 
 export type SepaSettlementInstruction = {
     type: TransactionType.SEPA,
     contractId: string,
     recipient: SepaRecipient,
-}
+};
 
 export type MockSettlementInstruction = {
     type: TransactionType.MOCK,
     contractId: string,
-}
+};
 
 export type SettlementInstruction = SepaSettlementInstruction | MockSettlementInstruction;
 
@@ -124,14 +129,14 @@ export type OctetKeyPair = {
     kty: KeyType.OCTET_KEY_PAIR,
     crv: OctetKeyCurve,
     x: string,
-}
+};
 
 export type EllipticCurveKey = {
     kty: KeyType.ELLIPTIC_CURVE,
     crv: EllipticKeyCurve,
     x: string,
     y: string,
-}
+};
 
 export type Htlc<TStatus = HtlcStatus> = {
     id: string,
@@ -151,7 +156,7 @@ export type Htlc<TStatus = HtlcStatus> = {
     expires: number,
     clearing: TStatus extends HtlcStatus.PENDING ? ClearingInfo : never,
     settlement: TStatus extends HtlcStatus.CLEARED | HtlcStatus.SETTLED ? SettlementInfo : never,
-}
+};
 
 export type RawHtlc<TStatus = HtlcStatus> = Omit<Htlc<TStatus>, 'asset' | 'expires'> & {
     asset: OasisAsset,
@@ -308,16 +313,18 @@ function convertHtlc<TStatus extends HtlcStatus>(htlc: RawHtlc<TStatus>): Htlc<T
         asset: htlc.asset.toUpperCase() as Asset,
         amount: coinsToUnits(htlc.asset, htlc.amount),
         fee: coinsToUnits(htlc.asset, htlc.fee, true),
-        beneficiary: htlc.beneficiary.kty === KeyType.ELLIPTIC_CURVE ? {
-            ...htlc.beneficiary,
-            crv: htlc.beneficiary.crv.toLowerCase() as EllipticKeyCurve,
-            x: base64ToHex(htlc.beneficiary.x),
-            y: base64ToHex(htlc.beneficiary.y),
-        } : {
-            ...htlc.beneficiary,
-            crv: htlc.beneficiary.crv.toLowerCase() as OctetKeyCurve,
-            x: base64ToHex(htlc.beneficiary.x),
-        },
+        beneficiary: htlc.beneficiary.kty === KeyType.ELLIPTIC_CURVE
+            ? {
+                ...htlc.beneficiary,
+                crv: htlc.beneficiary.crv.toLowerCase() as EllipticKeyCurve,
+                x: base64ToHex(htlc.beneficiary.x),
+                y: base64ToHex(htlc.beneficiary.y),
+            }
+            : {
+                ...htlc.beneficiary,
+                crv: htlc.beneficiary.crv.toLowerCase() as OctetKeyCurve,
+                x: base64ToHex(htlc.beneficiary.x),
+            },
         hash: {
             ...htlc.hash,
             value: base64ToHex(htlc.hash.value),
@@ -325,33 +332,43 @@ function convertHtlc<TStatus extends HtlcStatus>(htlc: RawHtlc<TStatus>): Htlc<T
         // @ts-expect-error Type string is not assignable to type TStatus extends HtlcStatus.SETTLED ? string : never
         preimage: {
             ...htlc.preimage,
-            ...('value' in htlc.preimage ? {
-                value: base64ToHex((htlc as unknown as RawHtlc<HtlcStatus.SETTLED>).preimage.value),
-            } : {}),
+            ...('value' in htlc.preimage
+                ? {
+                    value: base64ToHex((htlc as unknown as RawHtlc<HtlcStatus.SETTLED>).preimage.value),
+                }
+                : {}),
         },
         expires: Math.floor(Date.parse(htlc.expires) / 1000),
-        ...('clearing' in htlc ? {
-            clearing: {
-                ...htlc.clearing,
-                options: htlc.clearing.options.map((instructions) => ({
-                    ...instructions,
-                    ...('amount' in instructions ? {
-                        amount: coinsToUnits(htlc.asset, instructions.amount),
-                    } : {}),
-                })),
-                ...(htlc.clearing.status === ClearingStatus.PARTIAL ? {
-                    detail: {
-                        amount: coinsToUnits(
-                            htlc.asset,
-                            (htlc.clearing as ClearingInfo<ClearingStatus.PARTIAL>).detail.amount,
-                        ),
-                    },
-                } : {}),
-            },
-        } : {}),
-        ...('settlement' in htlc ? {
-            settlement: htlc.settlement,
-        } : {}),
+        ...('clearing' in htlc
+            ? {
+                clearing: {
+                    ...htlc.clearing,
+                    options: htlc.clearing.options.map((instructions) => ({
+                        ...instructions,
+                        ...('amount' in instructions
+                            ? {
+                                amount: coinsToUnits(htlc.asset, instructions.amount),
+                            }
+                            : {}),
+                    })),
+                    ...(htlc.clearing.status === ClearingStatus.PARTIAL
+                        ? {
+                            detail: {
+                                amount: coinsToUnits(
+                                    htlc.asset,
+                                    (htlc.clearing as ClearingInfo<ClearingStatus.PARTIAL>).detail.amount,
+                                ),
+                            },
+                        }
+                        : {}),
+                },
+            }
+            : {}),
+        ...('settlement' in htlc
+            ? {
+                settlement: htlc.settlement,
+            }
+            : {}),
     };
 
     return contract;
@@ -360,8 +377,11 @@ function convertHtlc<TStatus extends HtlcStatus>(htlc: RawHtlc<TStatus>): Htlc<T
 function coinsToUnits(asset: OasisAsset, value: string | number, roundUp = false): number {
     let decimals: number;
     switch (asset) {
-        case OasisAsset.EUR: decimals = 2; break;
-        default: throw new Error(`Invalid asset ${asset}`);
+        case OasisAsset.EUR:
+            decimals = 2;
+            break;
+        default:
+            throw new Error(`Invalid asset ${asset}`);
     }
     const parts = value.toString().split('.');
     parts[1] = (parts[1] || '').substr(0, decimals + 1);
