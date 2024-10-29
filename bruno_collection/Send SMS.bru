@@ -1,0 +1,17 @@
+meta {
+  name: Send SMS
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{API_URL}}/sms/send/{{phone_number}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  let data = res.getBody();
+  bru.setEnvVar("hmac",data.hmac);
+  bru.setEnvVar("timestamp",data.timestamp);
+}

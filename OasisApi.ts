@@ -7,10 +7,12 @@ type OasisError = {
 
 enum OasisAsset {
     EUR = 'eur',
+    CRC = 'crc',
 }
 
 export enum Asset {
     EUR = 'EUR',
+    CRC = 'CRC',
 }
 
 export enum HtlcStatus {
@@ -39,8 +41,13 @@ export enum DeniedReason {
     LIMIT_EXCEEDED = 'limit-exceeded',
 }
 
+export type CreationTokens = Partial<{
+    authorization: string,
+}>;
+
 export enum TransactionType {
     SEPA = 'sepa',
+    SINPEMOVIL = 'sinpemovil',
     MOCK = 'mock', // Only available in Sandbox environment
 }
 
@@ -57,12 +64,19 @@ export type SepaClearingInstruction = {
     purpose?: string,
 };
 
+export type SinpeMovilClearingInstruction = {
+    type: TransactionType.SINPEMOVIL,
+    amount: number,
+    phoneNumber: string,
+    purpose?: string,
+};
+
 export type MockClearingInstruction = {
     type: TransactionType.MOCK,
     description: string,
 };
 
-export type ClearingInstruction = SepaClearingInstruction | MockClearingInstruction;
+export type ClearingInstruction = SepaClearingInstruction | SinpeMovilClearingInstruction | MockClearingInstruction;
 
 export type ClearingInfo<CStatus = ClearingStatus> = {
     status: CStatus,
@@ -102,12 +116,26 @@ export type SepaSettlementInstruction = {
     recipient: SepaRecipient,
 };
 
+export type SinpeMovilSettlementInstruction = {
+    type: TransactionType.SINPEMOVIL,
+    contractId: string,
+    phoneNumber: string,
+};
+
 export type MockSettlementInstruction = {
     type: TransactionType.MOCK,
     contractId: string,
 };
 
-export type SettlementInstruction = SepaSettlementInstruction | MockSettlementInstruction;
+export type SettlementInstruction =
+    | SepaSettlementInstruction
+    | SinpeMovilSettlementInstruction
+    | MockSettlementInstruction;
+
+export type SettlementTokens = Partial<{
+    authorization: string,
+    smsApi: string,
+}>;
 
 export enum KeyType {
     OCTET_KEY_PAIR = 'OKP',
@@ -191,7 +219,7 @@ export async function createHtlc(
     contract: Pick<RawHtlc, 'asset' | 'amount' | 'beneficiary' | 'hash' | 'preimage' | 'expires'> & {
         includeFee: boolean,
     },
-    authorizationToken?: string,
+    tokens?: CreationTokens,
 ): Promise<Htlc<HtlcStatus.PENDING>> {
     if (contract.beneficiary.kty === KeyType.OCTET_KEY_PAIR || contract.beneficiary.kty === KeyType.ELLIPTIC_CURVE) {
         const { x } = contract.beneficiary;
@@ -231,14 +259,17 @@ export async function createHtlc(
         contract.expires = new Date(expires).toISOString();
     }
 
+    const headers: Record<string, string> = {};
+    if (tokens?.authorization) {
+        headers['Authorization'] = `Bearer ${tokens.authorization}`;
+    }
+
     const htlc = await api<RawHtlc<HtlcStatus.PENDING>>(
         API_URL,
         '/htlc',
         'POST',
         contract,
-        authorizationToken
-            ? { 'Authorization': `Bearer ${authorizationToken}` }
-            : undefined,
+        headers,
     );
     return convertHtlc(htlc);
 }
@@ -253,7 +284,7 @@ export async function settleHtlc(
     id: string,
     secret: string,
     settlementJWS: string,
-    authorizationToken?: string,
+    tokens?: SettlementTokens,
 ): Promise<Htlc<HtlcStatus.SETTLED>> {
     if (secret.length === 64) {
         secret = hexToBase64(secret);
@@ -268,6 +299,14 @@ export async function settleHtlc(
         throw new Error('Invalid settlement instruction JWS');
     }
 
+    const headers: Record<string, string> = {};
+    if (tokens?.authorization) {
+        headers['Authorization'] = `Bearer ${tokens.authorization}`;
+    }
+    if (tokens?.smsApi) {
+        headers['X-SMS-API-Token'] = tokens.smsApi;
+    }
+
     const htlc = await api<RawHtlc<HtlcStatus.SETTLED>>(
         API_URL,
         `/htlc/${id}/settle`,
@@ -276,9 +315,7 @@ export async function settleHtlc(
             preimage: secret,
             settlement: settlementJWS,
         },
-        authorizationToken
-            ? { 'Authorization': `Bearer ${authorizationToken}` }
-            : undefined,
+        headers,
     );
     return convertHtlc(htlc);
 }
@@ -376,13 +413,14 @@ function coinsToUnits(asset: OasisAsset, value: string | number, roundUp = false
     let decimals: number;
     switch (asset) {
         case OasisAsset.EUR:
+        case OasisAsset.CRC:
             decimals = 2;
             break;
         default:
             throw new Error(`Invalid asset ${asset}`);
     }
     const parts = value.toString().split('.');
-    parts[1] = (parts[1] || '').substr(0, decimals + 1);
+    parts[1] = (parts[1] || '').substring(0, decimals + 1);
     while (parts[1].length < decimals + 1) {
         parts[1] += '0';
     }
